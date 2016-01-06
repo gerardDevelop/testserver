@@ -91,9 +91,9 @@ io.on('connection', function(socket){
 					players.splice(i,1);
 				}
 			}
-			for(var i = 0; i < playersOnine.length; i++) {
-				if(playersOnine[i].id == socket.id) {
-					playersOnine.splice(i,1);
+			for(var i = 0; i < playersOnline.length; i++) {
+				if(playersOnline[i].id == socket.id) {
+					playersOnline.splice(i,1);
 				}
 			}
 		});
