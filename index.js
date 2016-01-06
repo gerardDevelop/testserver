@@ -25,6 +25,10 @@ io.on('connection', function(socket){
 		console.log(data.usr + " has joined the lobby");
 	});
 
+	socket.on('ping',function(){
+		socket.emit('pong');
+	});
+
 	socket.on('disconnect', function() {
 			console.log("User disconnected from lobby");
 			for(var i = 0; i < playersOnline.length; i++) {
