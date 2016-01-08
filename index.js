@@ -176,12 +176,12 @@ io.on('connection', function(socket){
 					// send to opposite player in the match
 					socket.broadcast.to(match1v1running[i].players[1].id).emit('playerMoved', data);
 					match = match1v1running[i];
-					console.log("emitting playedMoved to player 1");
+					//console.log("emitting playedMoved to player 1");
 				}
 				else if(socket.id == match1v1running[i].players[1].id) {
 					socket.broadcast.to(match1v1running[i].players[0].id).emit('playerMoved', data);
 					match = match1v1running[i]
-					console.log("emitting playedMoved to player 0");
+					//console.log("emitting playedMoved to player 0");
 				}
 			}  
 		
