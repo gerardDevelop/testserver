@@ -169,7 +169,7 @@ io.on('connection', function(socket){
 			data.id = socket.id;
 			
 			var match = null;
-			console.log("received playedMoved");
+			//console.log("received playedMoved");
 			// get the match
 			for(var i = 0; i < match1v1running.length; i++) {
 				if(socket.id == match1v1running[i].players[0].id) {
