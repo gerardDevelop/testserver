@@ -225,6 +225,16 @@ io.on('connection', function(socket){
 		//		}
 		//	}
 		});
+		socket.on("action", function(data) {
+			data.id = socket.id;
+			data.success = true;// flesh this out later
+			data.magnitude = 3;	// will change to a random value later...just testing for now
+			socket.emit('actionResponse',data)
+			
+			if(data.success) {
+				socket.broadcast.emit('actionBroadcast',data)
+			}
+		});
 
 		socket.on('disconnect', function() {
 			console.log("Player disconnected")
@@ -241,7 +251,6 @@ io.on('connection', function(socket){
 			}
 		});
 	//	players.push(new player(socket.id, 0, 0, 0, "null"));
-	
 	});
 });
 function player(id, x, y, r, target, loaded, username) {
