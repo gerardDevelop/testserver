@@ -8,8 +8,11 @@ var match1v1running = [];	// holds all running matches
 
 var randomChars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
+var tempUpdateInt = 0;
+
 server.listen(8081, function(){
 	console.log("Server is now running...");
+	setInterval`(update,1000);
 });
 
 io.on('connection', function(socket){
@@ -136,6 +139,7 @@ io.on('connection', function(socket){
 		for(var i = 0; i < match1v1running.length; i++) {
 			if(socket.id == match1v1running[i].players[0].id) {
 				match1v1running[i].players[0].loaded = true;
+				match1v1running[i].players[0].character = new character("WARRIOR");
 				match = match1v1running[i]
 			}
 			else if(socket.id == match1v1running[i].players[1].id) {
@@ -253,6 +257,14 @@ io.on('connection', function(socket){
 	//	players.push(new player(socket.id, 0, 0, 0, "null"));
 	});
 });
+
+function update() {
+    
+    // check cooldowns 
+
+
+}
+
 function player(id, x, y, r, target, loaded, username) {
 	this.id = id;
 	this.x = x;
@@ -261,6 +273,19 @@ function player(id, x, y, r, target, loaded, username) {
 	this.target = target;
 	this.loaded = loaded;
 	this.username = username;
+	this.character = null;
+}
+
+function character(charType) {
+	// global cooldown to begin with
+	this.charType = charType;
+	var globalCooldown;
+	var globalCooldownReady = true;
+
+	//create different cooldowns here according to each class type
+
+	// TODO - need to instantiate character 
+	//during game initialization inside player object
 }
 
 function loggedInUser(id, username) {
