@@ -1,3 +1,7 @@
+var GLOBAL_CD_TIME = 1500;
+var UPDATE_TIME = 1/60;
+
+
 var app = require('express')();
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
@@ -12,7 +16,7 @@ var tempUpdateInt = 0;
 
 server.listen(8081, function(){
 	console.log("Server is now running...");
-	setInterval`(update,1000);
+	setInterval(update,UPDATE_TIME);
 });
 
 io.on('connection', function(socket){
@@ -139,7 +143,6 @@ io.on('connection', function(socket){
 		for(var i = 0; i < match1v1running.length; i++) {
 			if(socket.id == match1v1running[i].players[0].id) {
 				match1v1running[i].players[0].loaded = true;
-				match1v1running[i].players[0].character = new character("WARRIOR");
 				match = match1v1running[i]
 			}
 			else if(socket.id == match1v1running[i].players[1].id) {
@@ -152,14 +155,14 @@ io.on('connection', function(socket){
 			if(match1v1running[i].namespace == gamedata.namespace) {
 				// this is the correct 'room' to send to
 				// broadcast to players in this room
-				gamedata.firstLoaded = match1v1running[i].players[0].loaded
-				gamedata.secondLoaded = match1v1running[i].players[1].loaded
+				gamedata.firstLoaded = match1v1running[i].players[0].loaded;
+				gamedata.secondLoaded = match1v1running[i].players[1].loaded;
 			}
 		}
 		gamedata.senderid = socket.id;
 
 		socket.emit('gamestarted', gamedata);
-		
+
 		//if(socket.id == match.players[0])
 		//	socket.broadcast.to(match.players[1].id).emit("gamestarted", gamedata);
 		//else {
@@ -231,10 +234,29 @@ io.on('connection', function(socket){
 		});
 		socket.on("action", function(data) {
 			data.id = socket.id;
-			data.success = true;// flesh this out later
-			data.magnitude = 3;	// will change to a random value later...just testing for now
-			socket.emit('actionResponse',data)
 			
+			for(var i = 0; i < match1v1running.length; i++) {
+				for(var j = 0; j < match1v1running[i].players.length; j++) {
+					if(match1v1running[i].players[j].id == socket.id) {
+						if(match1v1running[i].players[j].character.globalCooldownReady) {
+							if(match1v1running[i].players[j].character.charType == "WARRIOR") {
+								if(data.GameAction == "WARRIOR_ATTACK") {
+									console.log("received WARRIOR_ATTACK");
+									data.success = true;// flesh this out later
+									data.magnitude = 3;	// will change to a random value later...just testing for now
+									
+								}
+							}	
+						}
+					}
+				}
+			}
+
+			
+
+
+			socket.emit('actionResponse',data)
+				
 			if(data.success) {
 				socket.broadcast.emit('actionBroadcast',data)
 			}
@@ -260,9 +282,17 @@ io.on('connection', function(socket){
 
 function update() {
     
+	var time = Date.now();
+
     // check cooldowns 
-
-
+    for(var i = 0; i < match1v1running.length; i++) {
+    	for(var j = 0; j <match1v1running[i].players.length; j++) {
+    		if(time > match1v1running[i].players[j].character.globalCooldown) {
+    			if(!match1v1running[i].players[j].character.globalCooldownReady)
+    				match1v1running[i].players[j].character.globalCooldownReady = true;	
+    		}
+    	}
+    }
 }
 
 function player(id, x, y, r, target, loaded, username) {
@@ -273,14 +303,15 @@ function player(id, x, y, r, target, loaded, username) {
 	this.target = target;
 	this.loaded = loaded;
 	this.username = username;
-	this.character = null;
+	this.character = new character("WARRIOR");
+
 }
 
 function character(charType) {
 	// global cooldown to begin with
 	this.charType = charType;
-	var globalCooldown;
-	var globalCooldownReady = true;
+	this.globalCooldown = 0;
+	this.globalCooldownReady = true;
 
 	//create different cooldowns here according to each class type
 
