@@ -235,31 +235,40 @@ io.on('connection', function(socket){
 		socket.on("action", function(data) {
 			data.id = socket.id;
 			
+
 			for(var i = 0; i < match1v1running.length; i++) {
 				for(var j = 0; j < match1v1running[i].players.length; j++) {
 					if(match1v1running[i].players[j].id == socket.id) {
 						if(match1v1running[i].players[j].character.globalCooldownReady) {
 							if(match1v1running[i].players[j].character.charType == "WARRIOR") {
 								if(data.GameAction == "WARRIOR_ATTACK") {
-									console.log("received WARRIOR_ATTACK");
 									data.success = true;// flesh this out later
-									data.magnitude = 3;	// will change to a random value later...just testing for now
-									
+									data.magnitude = generateDamage(7,9);	// will change to a random value later...just testing for now
+									match1v1running[i].players[j].character.globalCooldown = Date.now() + 1500;
+									match1v1running[i].players[j].character.globalCooldownReady = false;
 								}
 							}	
 						}
 					}
 				}
 			}
-
 			
-
-
-			socket.emit('actionResponse',data)
+			socket.emit('actionResponse',data);
 				
 			if(data.success) {
-				socket.broadcast.emit('actionBroadcast',data)
+				socket.broadcast.emit('actionBroadcast',data);
 			}
+
+			for(var i = 0; i < match1v1running.length; i++) {
+				for(var j = 0; j < match1v1running[i].players.length; j++) {
+					if(match1v1running[i].players[j].id == data.target) {
+						match1v1running[i].players[j].character.hp -= data.magnitude;
+						console.log("HP: " + match1v1running[i].players[j].character.hp);
+					}
+				}
+			}
+
+
 		});
 
 		socket.on('disconnect', function() {
@@ -288,9 +297,26 @@ function update() {
     for(var i = 0; i < match1v1running.length; i++) {
     	for(var j = 0; j <match1v1running[i].players.length; j++) {
     		if(time > match1v1running[i].players[j].character.globalCooldown) {
-    			if(!match1v1running[i].players[j].character.globalCooldownReady)
+    			if(!match1v1running[i].players[j].character.globalCooldownReady) {
     				match1v1running[i].players[j].character.globalCooldownReady = true;	
+    				io.to(match1v1running[i].players[j].id).emit("globalCdFinished");
+    			}
     		}
+    		if(match1v1running[i].players[j].character.hp < 0 && !match1v1running[i].players[j].character.dead) { //death
+  			match1v1running[i].players[j].character = true;
+    		console.log("DEATH!!!");
+  			// since this is a 1v1 match, it means the 
+   			 // other player wins
+    		var data = { };
+    		data.losingId = match1v1running[i].players[j].id; 
+    		// TODO change to 'losingteam'
+    		// give each player a team to belong to
+    		// 0 or 1
+
+    		for(var k = 0; k < match1v1running[i].players.length; k++) {
+    			io.to(match1v1running[i].players[k].id).emit("gameover", data);
+    		}
+    	}
     	}
     }
 }
@@ -303,16 +329,18 @@ function player(id, x, y, r, target, loaded, username) {
 	this.target = target;
 	this.loaded = loaded;
 	this.username = username;
-	this.character = new character("WARRIOR");
-
+	this.character = new character("WARRIOR", id);
+	
 }
 
-function character(charType) {
+function character(charType, id) {
 	// global cooldown to begin with
 	this.charType = charType;
 	this.globalCooldown = 0;
 	this.globalCooldownReady = true;
-
+	this.id = id;
+	this.hp = 100;
+	this.dead = false;
 	//create different cooldowns here according to each class type
 
 	// TODO - need to instantiate character 
@@ -334,4 +362,8 @@ function randomString(length, chars) {
     var result = '';
     for (var i = length; i > 0; --i) result += chars[Math.floor(Math.random() * chars.length)];
     return result;
+}
+
+function generateDamage(minDmg, maxDmg) {
+	return Math.floor(Math.random() * (maxDmg - minDmg + 1)) + minDmg;
 }
