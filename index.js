@@ -267,8 +267,6 @@ io.on('connection', function(socket){
 					}
 				}
 			}
-
-
 		});
 
 		socket.on('disconnect', function() {
@@ -303,7 +301,7 @@ function update() {
     			}
     		}
     		if(match1v1running[i].players[j].character.hp < 0 && !match1v1running[i].players[j].character.dead) { //death
-  			match1v1running[i].players[j].character = true;
+  			match1v1running[i].players[j].character.dead = true;
     		console.log("DEATH!!!");
   			// since this is a 1v1 match, it means the 
    			 // other player wins
