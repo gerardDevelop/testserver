@@ -24,9 +24,9 @@ client.on('connect', function() {
 
 
 //var players = [];	// I dont really know what to use this for right now.
-var playersOnline = [];	
+var playersOnline = { };	
 var autoMatch1 = [];	// holds all players waiting for 1v1 match
-var match1v1running = [];	// holds all running matches
+var match1v1running = { };	// holds all running matches
 
 
 
@@ -42,13 +42,11 @@ server.listen(8081, function(){
 io.on('connection', function(socket){
 	console.log("Player connected!");
 	
-
-
 	socket.on('loginattempt', function(data) {
 		data.id = socket.id;
 		data.num = playersOnline.length;
 		socket.emit('loginsuccess', data);
-		playersOnline.push(new loggedInUser(socket.id, data.usr));
+		playersOnline[data.usr] = new loggedInUser(socket.id, data.usr);
 		console.log(data.usr + " has joined the lobby");
 	});
 
@@ -101,7 +99,7 @@ io.on('connection', function(socket){
 			players.push(autoMatch1[0]);
 			players.push(autoMatch1[1]);
 
-			match1v1running.push(new match1v1(players, rString, "1v1"));
+			match1v1running[rString] = new match1v1(players, rString, "1v1");
 
 
 
@@ -156,6 +154,8 @@ io.on('connection', function(socket){
 	socket.on('1v1gameloaded', function(gamedata) {
 
 		var match = null;
+
+
 
 		// check socket id against matches
 		for(var i = 0; i < match1v1running.length; i++) {
@@ -294,8 +294,6 @@ io.on('connection', function(socket){
 		socket.on('exitGameScreen', function() {
 			// check if gameover
 			//remove players from match1v1running
-			
-
 		});
 
 		socket.on('disconnect', function() {

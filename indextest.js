@@ -7,16 +7,17 @@ var server = require('http').Server(app);
 var io = require('socket.io')(server);
 
 
-//var redis = require('redis');
-/*
-var client = redis.createClient();
+var redis = require('redis');
+var redisClient = redis.createClient();
 
+var creatingMatch1v1 = false;
 
-client.on('connect', function() {
+redisClient.on('connect', function() {
 	console.log('connected to redis');
 });
-
-*/
+redisClient.on('error', function (err) {
+	console.log("error" + err);
+});
 
 // I need to transfer these arrays/ convert them into hashmaps
 
@@ -40,16 +41,67 @@ server.listen(8081, function(){
 });
 
 io.on('connection', function(socket){
-	console.log("Player connected!");
+	console.log("A user has connected!");
 	
 
+	socket.on('register_account', function(data) {
+		var email = data.email;
+		var username = "user_" + data.username;	// indentifies is as a username
+		var password = data.password;
+
+		redisClient.exists(username, function(err, reply) {
+			if(reply == 1) {
+				// failure, cannot create username
+				socket.emit("register_failure");
+
+			}
+			else {
+				// success
+
+				// create new username
+				redisClient.hmset(username, 'email', email, 
+											'password', password,
+											'socket_id', 'not_online', function(err, reply) {
+					console.log("adding " + username);				
+				});
+				redisClient.sadd(['users', username], function(err, reply) {});
+				
+				socket.emit("register_success");
+			}
+		});
+	});
 
 	socket.on('loginattempt', function(data) {
 		data.id = socket.id;
 		data.num = playersOnline.length;
-		socket.emit('loginsuccess', data);
-		playersOnline.push(new loggedInUser(socket.id, data.usr));
-		console.log(data.usr + " has joined the lobby");
+		var username = "user_" + data.usr;
+		console.log(username + " is trying to sign in");
+
+		redisClient.exists(username, function(err, reply) {
+			if(reply == 1) {
+				socket.emit('loginsuccess', data);
+			
+			redisClient.sadd(['players_online', username], function(err, reply) {
+				console.log("Players online: " + reply);
+			}); 
+
+			// set socketid for main username key
+			redisClient.hset(username, 'socket_id', socket.id);
+
+			// create temporary socketid hash for this session
+			redisClient.hmset(socket.id, 'username', username);
+			redisClient.expire(socket.id, 10000);
+			// fill in match id and character id later					
+
+			console.log(data.usr + " has joined the lobby");
+			} else {
+			// send failure message
+			data.reason = "username does not exist";
+
+			socket.emit('login_failure', data);
+			// could add reason for failure into data later
+			}
+		});
 	});
 
 	socket.on('ping', function(){
@@ -58,6 +110,17 @@ io.on('connection', function(socket){
 
 	socket.on('disconnect', function() {
 			console.log("User disconnected from lobby");
+			//remove socketid from user key
+			redisClient.hget(socket.id, function(err, reply) {
+				redisClient.hset(reply, 'socket_id', 'not_online');
+			});
+			//remove temporary socketid key
+			redisClient.del(socket.id, function(err,reply) {});
+			// get socket.id and get the associated username 
+			// remove username from list
+			// set isOnline to false in main user key
+			redisClient.srem('automatch1v1', socket.id);
+
 			// remove player from players online
 			for(var i = 0; i < playersOnline.length; i++) {
 				if(playersOnline[i].id == socket.id) {
@@ -73,6 +136,11 @@ io.on('connection', function(socket){
 		});
 
 	socket.on('automatch1', function() {
+		
+		// add socketid to some kind of redis automatch set
+
+		redisClient.sadd('automatch1v1', socket.id);				
+/*
 		for(var i = 0; i < playersOnline.length; i++) {
 			if(playersOnline[i].id == socket.id) {
 				//autoMatch1.push(playersOnline[i]);
@@ -84,6 +152,7 @@ io.on('connection', function(socket){
 				socket.emit("automatchwaiting");
 			}
 		}
+		*/
 		// add to array
 		//autoMatch1.push()
 		// check if array if big enough.
@@ -92,18 +161,28 @@ io.on('connection', function(socket){
 	});
 
 	socket.on('automatching1', function(){
-		if(autoMatch1.length > 1) {
-			// create new namespace for match
+		
+		//var length = 0;
+/*)
+		redisClient.scard('automatch1v1', function(err, reply){
+			length = reply;
+		});
+
+		if(length > 1) {
+			// create new id for match
 			var rString = randomString(32, randomChars);	
 
-			var players = [];
+			//var players = [];
+			redisClient.sadd(socket.id)
 
+*/
+			/*
 			players.push(autoMatch1[0]);
 			players.push(autoMatch1[1]);
 
 			match1v1running.push(new match1v1(players, rString, "1v1"));
-
-
+			*/
+/*
 
 			// create a new match out of them
 			//match1v1running.push(new match1v1(autoMatch1[0].id, autoMatch1[0].username, autoMatch1[1].id, autoMatch1[1].username, rString));	
@@ -132,6 +211,8 @@ io.on('connection', function(socket){
 			//send msg that players havent been found yet
 			//..or nothing at all
 		}
+
+		*/
 	});
 
 	socket.on('get1v1details', function(data) {
@@ -318,6 +399,50 @@ io.on('connection', function(socket){
 
 function update() {
     
+
+	// check automatch1v1set for players
+	
+
+	if(!creatingMatch1v1) {
+		redisClient.scard('automatch1v1', function(err, reply) {
+			numberOfPlayers = reply;
+
+			if(reply > 1) {
+				creatingMatch1v1 = true;
+
+				var id_1 = "";
+				var id_2 = "";
+
+				var matchString = 'match_' + randomString(32, randomChars);
+			// remove and get 2 ids from the auto match list
+				redisClient.srandmember('automatch1v1', 1, function(err, reply2) {
+					id_1 = reply2;
+					redisClient.hset(matchString, 'id_1', reply2, function(err, obj){});
+					redisClient.srem('automatch1v1', reply2, function(err,obj){});
+					//redisClient.smove('automatch1v1', matchString, reply2);
+					
+					redisClient.srandmember('automatch1v1', 1, function(err, reply3) {
+						id_2 = reply3;
+
+						redisClient.hset(matchString, 'id_2', reply3, function(err, obj){});
+						redisClient.srem('automatch1v1', reply3, function(err,obj){});
+						//redisClient.smove('automatch1v1', matchString, reply2);
+						console.log(matchString);
+
+						io.to(id_1).emit('1v1started', );
+						io.to(id_2).emit('1v1started', );
+						//io.emit('1v1started');
+
+						creatingMatch1v1 = false;
+					});
+				});
+			}
+		});
+	}
+
+
+
+
 	var time = Date.now();
 
     // check cooldowns 
