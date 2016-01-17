@@ -429,8 +429,10 @@ function update() {
 						//redisClient.smove('automatch1v1', matchString, reply2);
 						console.log(matchString);
 
-						io.to(id_1).emit('1v1started', );
-						io.to(id_2).emit('1v1started', );
+						//var matchdata 
+
+						io.to(id_1).emit('1v1started');
+						io.to(id_2).emit('1v1started');
 						//io.emit('1v1started');
 
 						creatingMatch1v1 = false;
