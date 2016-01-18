@@ -41,8 +41,8 @@ io.on('connection', function(socket) {
 
 		////////////////////////////////////////
 		socket.on('disconnect', function() {
-			var tempUser = userMap.get(socket.id);	
-			console.log(tempUser.username + " disconnected");
+
+			console.log(socket.id + " disconnected");
 
 			for(var i = 0; i < userArray.length; i++) {
 				if(userArray[i] == socket.id) {
@@ -83,6 +83,12 @@ io.on('connection', function(socket) {
 			userMap.get(socket.id).vy = data.vy;
 
 		});
+		socket.on('new_text', function(data) {
+			// broadcast to everyone
+			data.id = socket.id;
+			socket.broadcast.emit('new_text', data);
+		});
+
 	});
 	/*
 	socket.on('creatematch', function(data)  {
