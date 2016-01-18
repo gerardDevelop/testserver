@@ -73,7 +73,7 @@ io.on('connection', function(socket) {
 			// send user array so client knows the ids that reference the objects in the map
 			data.id = socket.id;	
 
-
+			
 
 			socket.broadcast.emit('kinematic_update', data);
 
@@ -81,6 +81,7 @@ io.on('connection', function(socket) {
 			userMap.get(socket.id).y = data.y;
 			userMap.get(socket.id).vx = data.vx;
 			userMap.get(socket.id).vy = data.vy;
+			
 
 		});
 		socket.on('new_text', function(data) {
