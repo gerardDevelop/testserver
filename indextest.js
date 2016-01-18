@@ -133,7 +133,7 @@ io.on('connection', function(socket){
 					autoMatch1.splice(i,1);	
 				}
 			}
-		});
+	});
 
 	socket.on('automatch1', function() {
 		
@@ -435,6 +435,11 @@ function update() {
 						io.to(id_2).emit('1v1started');
 						//io.emit('1v1started');
 
+						// add to a matchid to a match list to run through
+						// the update loop
+						
+						
+							
 						creatingMatch1v1 = false;
 					});
 				});
